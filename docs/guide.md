@@ -41,9 +41,7 @@ flowchart TD
 
 #### 详细技术栈推荐
 
-目前的选型是react 18， Axios， vite
-
- FastAPI
+> 目前的选型是react 18， Axios， vite
 
 - **前端 (Frontend)**:
 
@@ -59,8 +57,7 @@ flowchart TD
 
     
 
-
-  fastAPI是基于python的，那虚拟环境就用uv了
+> 后端服务框架使用FastAPI，以及由于fastAPI是基于python的，那虚拟环境就用uv了。部署使用Uvicorn。
 
 - **后端 (Backend)**:
 
