@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -7,22 +7,32 @@ import json
 import asyncio
 from pathlib import Path
 import base64
+from typing import Optional
 
 # 模拟的检测函数 - 您需要替换为实际的PyTorch检测函数调用
-async def run_detection(image_path: str):
+async def run_detection(image_path: str, annotations: list = None):
     """
     这是一个示例函数，您需要根据实际的PyTorch项目来替换
-    参数: image_path - 图片文件路径
+    参数:
+        image_path - 图片文件路径
+        annotations - 标注点列表 [{"x": 100, "y": 200, "label": "点1"}, ...]
     返回: 检测结果字典，包含边界框、标签、置信度等信息
 
     实际使用时，您可能需要这样调用:
     import your_detection_module
-    result = your_detection_module.run_detection(image_path)
+    result = your_detection_module.run_detection(image_path, annotations)
     """
     # 模拟检测延迟
     await asyncio.sleep(2)
 
+    # 如果有标注点，在日志中打印（实际使用时传给模型）
+    if annotations:
+        print(f"收到 {len(annotations)} 个标注点:")
+        for i, ann in enumerate(annotations):
+            print(f"  点{i+1}: {ann['label']} at ({ann['x']}, {ann['y']})")
+
     # 模拟检测结果 - 实际使用时请替换为真实的检测函数调用
+    # 如果有标注点，可以根据标注点生成不同的结果
     return {
         "detections": [
             {
@@ -42,7 +52,8 @@ async def run_detection(image_path: str):
             }
         ],
         "image_width": 640,
-        "image_height": 480
+        "image_height": 480,
+        "used_annotations": len(annotations) if annotations else 0
     }
 # 创建 FastAPI 应用实例
 app = FastAPI(title="图像检测API", description="支持图像上传和目标检测的API服务")
@@ -98,10 +109,17 @@ async def upload_avatar(file: UploadFile = File(...)):
         "url": f"/images/{safe_filename}"
     }
 @app.post("/api/detect")
-async def detect_objects(file: UploadFile = File(...)):
+async def detect_objects(
+    file: UploadFile = File(...),
+    annotations: Optional[str] = Form(None)
+):
     """
     图像目标检测端点
-    接收图片文件，返回检测结果
+    接收图片文件和可选的标注数据，返回检测结果
+
+    参数:
+        file: 图片文件
+        annotations: JSON字符串格式的标注数据（可选）
     """
     # 验证文件类型
     if not file.content_type.startswith('image/'):
@@ -118,8 +136,18 @@ async def detect_objects(file: UploadFile = File(...)):
         with open(file_path, "wb") as buffer:
             buffer.write(content)
 
-        # 调用检测函数
-        detection_result = await run_detection(str(file_path))
+        # 解析标注数据
+        annotation_data = None
+        if annotations:
+            try:
+                annotation_data = json.loads(annotations)
+                print(f"✓ 接收到标注数据: {len(annotation_data)} 个标注点")
+            except json.JSONDecodeError:
+                print("⚠ 标注数据解析失败，将不使用标注数据")
+                annotation_data = None
+
+        # 调用检测函数，传入标注数据
+        detection_result = await run_detection(str(file_path), annotation_data)
 
         # 读取图片并转换为base64（用于前端显示）
         with open(file_path, "rb") as img_file:
@@ -135,7 +163,8 @@ async def detect_objects(file: UploadFile = File(...)):
             "detections": detection_result["detections"],
             "image_width": detection_result["image_width"],
             "image_height": detection_result["image_height"],
-            "detection_count": len(detection_result["detections"])
+            "detection_count": len(detection_result["detections"]),
+            "annotations_used": detection_result.get("used_annotations", 0)
         }
 
     except Exception as e:
