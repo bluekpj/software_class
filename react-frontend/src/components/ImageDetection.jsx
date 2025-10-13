@@ -20,12 +20,12 @@ const ImageDetection = () => {
       setDetectionResult(null)
       setError(null)
       setAnnotations([])
-      setShowAnnotation(false)
 
       // 生成预览
       const reader = new FileReader()
       reader.onload = (e) => {
         setPreview(e.target.result)
+        setShowAnnotation(true) // 上传后直接进入标注界面
       }
       reader.readAsDataURL(file)
     }
@@ -40,11 +40,11 @@ const ImageDetection = () => {
       setDetectionResult(null)
       setError(null)
       setAnnotations([])
-      setShowAnnotation(false)
 
       const reader = new FileReader()
       reader.onload = (e) => {
         setPreview(e.target.result)
+        setShowAnnotation(true) // 上传后直接进入标注界面
       }
       reader.readAsDataURL(file)
     }
@@ -140,11 +140,6 @@ const ImageDetection = () => {
       ) : (
         /* 正常上传和结果显示模式 */
         <>
-          <div className="detection-header">
-            <h2>🔍 图像目标检测</h2>
-            <p className="detection-subtitle">上传图片，标注目标点，开始智能检测</p>
-          </div>
-
           {/* 文件上传区域 */}
           {!detectionResult && (
             <>
