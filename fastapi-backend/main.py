@@ -38,7 +38,7 @@ async def run_detection(image_path: str, annotations: list = None):
             # 按照指定格式写入文件：
             # x1 y1 x2 y2 x3 y3 x4 y4 point_x point_y class_name difficulty
             # 由于框未知，前8个值为0，class_name和difficulty也为0
-            line = f"0 0 0 0 0 0 0 0 {ann['x']} {ann['y']} 0 0\n"
+            line = f"0 0 0 0 0 0 0 0 {ann['x']} {ann['y']} ship 0\n"
             f.write(line)
 
     # 模拟检测结果 - 实际使用时请替换为真实的检测函数调用
