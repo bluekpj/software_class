@@ -1,7 +1,7 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-
+from test_dota2coco_P2B_obb import PointLabel2COCO
 import os
 import json
 import asyncio
@@ -41,7 +41,10 @@ async def run_detection(image_path: str, annotations: list = None):
             line = f"0 0 0 0 0 0 0 0 {ann['x']} {ann['y']} {ann['label']} 0\n"
             f.write(line)
 
-
+    custom_categories = ['person', 'bird', 'home','ship']
+    PointLabel2COCO(r'uploads/',
+                   r'uploads/coco_format_point_labels.json',
+                   custom_categories)
     # 模拟检测结果 - 实际使用时请替换为真实的检测函数调用
     # 如果有标注点，可以根据标注点生成不同的结果
     return {

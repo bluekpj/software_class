@@ -181,7 +181,7 @@ def PointLabel2COCO(srcpath, destfile, cls_names):
     
     with open(destfile, 'w') as f_out:
         filenames = util.GetFileFromThisRootDir(labelparent)
-        
+
         for file in filenames:
             basename = util.custombasename(file)
             
@@ -243,7 +243,7 @@ def PointLabel2COCO(srcpath, destfile, cls_names):
                     point_y = float(splitline[9])
                     class_name = splitline[10]
                     difficulty = splitline[11] if len(splitline) > 11 else '0'
-                    
+
                     # 检查类别是否在类别列表中
                     if class_name not in cls_names:
                         print(f"Warning: Unknown class '{class_name}' in {basename}")
