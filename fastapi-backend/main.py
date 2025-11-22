@@ -1,7 +1,7 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from test_dota2coco_P2B_obb import PointLabel2COCO
+
 import os
 import json
 import asyncio
@@ -32,7 +32,7 @@ async def run_detection(image_path: str, annotations: list = None):
             print(f"  点{i+1}: {ann['label']} at ({ann['x']}, {ann['y']})")
 
     # 保存检测结果为指定格式的txt文件
-    with open("uploads/label/image.txt", "w") as f:
+    with open("uploads/label/00006.txt", "w") as f:
         for i, ann in enumerate(annotations):
             
             # 按照指定格式写入文件：
@@ -41,10 +41,6 @@ async def run_detection(image_path: str, annotations: list = None):
             line = f"0 0 0 0 0 0 0 0 {ann['x']} {ann['y']} {ann['label']} 0\n"
             f.write(line)
 
-    custom_categories = ['person', 'bird', 'home']
-    PointLabel2COCO(r'uploads/',
-                   r'uploads/coco_format_point_labels.json',
-                   custom_categories)
 
     # 模拟检测结果 - 实际使用时请替换为真实的检测函数调用
     # 如果有标注点，可以根据标注点生成不同的结果
@@ -142,9 +138,9 @@ async def detect_objects(
 
     try:
         # 保存上传的图片
-        file_extension = file.filename.split('.')[-1] if file.filename else 'jpg'
-        safe_filename = f"detect_{hash(file.filename or 'image')}.{file_extension}"
-        file_path = IMAGE_DIR / safe_filename
+        # file_extension = file.filename.split('.')[-1] if file.filename else 'jpg'
+        # safe_filename = f"detect_{hash(file.filename or 'image')}.{file_extension}" 
+        file_path = IMAGE_DIR / file.filename
 
         # 读取并保存文件
         content = await file.read()
