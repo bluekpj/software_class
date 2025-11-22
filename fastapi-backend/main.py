@@ -169,8 +169,8 @@ async def detect_objects(
 
         return {
             "success": True,
-            "filename": safe_filename,
-            "image_base64": f"data:image/{file_extension};base64,{img_base64}",
+            "filename": file.filename,
+            "image_base64": f"data:image/{file.filename};base64,{img_base64}",
             "detections": detection_result["detections"],
             "image_width": detection_result["image_width"],
             "image_height": detection_result["image_height"],
