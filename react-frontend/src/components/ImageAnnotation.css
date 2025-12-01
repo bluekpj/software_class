@@ -159,7 +159,12 @@
   font-size: 14px;
   font-weight: 500;
   background: white;
+  color: #2c3e50;
   transition: border-color 0.2s;
+}
+
+.label-input::placeholder {
+  color: #95a5a6;
 }
 
 .label-input:focus {
@@ -205,6 +210,70 @@
 
 .annotation-help li {
   margin-bottom: 4px;
+}
+
+/* 类别选择小窗口 */
+.category-popup {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(255,255,255,0.95);
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  padding: 8px;
+  min-width: 140px;
+  z-index: 5;
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: #2c3e50;
+  margin-bottom: 6px;
+}
+
+.category-toggle {
+  border: none;
+  background: #f0f0f0;
+  color: #2c3e50;
+  border-radius: 6px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.category-body {
+  display: flex;
+  gap: 6px;
+}
+
+.category-btn {
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #2c3e50;
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.category-btn.active {
+  background: #4ECDC4;
+  color: white;
+  border-color: #4ECDC4;
+}
+
+.label-chip {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #eef6ff;
+  color: #2c3e50;
+  border: 1px solid #cde1ff;
+  border-radius: 6px;
+  font-size: 12px;
 }
 
 /* 滚动条样式 */
