@@ -398,6 +398,71 @@
   font-size: 14px;
 }
 
+
+
+/* 各类别得分统计 */
+.category-stats {
+  margin-top: 30px;
+  padding: 20px;
+  background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.category-stats h4 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #2c3e50;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.stats-list {
+  display: grid;
+  gap: 15px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.stat-item {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #667eea;
+}
+
+.stat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.stat-category {
+  font-weight: 600;
+  font-size: 16px;
+  color: #2c3e50;
+}
+
+.stat-count {
+  font-size: 14px;
+  color: #7f8c8d;
+}
+
+.stat-details {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 14px;
+}
+
+.stat-avg, .stat-max, .stat-min {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #555;
+}
+
 /* 检测详情 */
 .detection-details {
   margin-top: 30px;
@@ -464,6 +529,53 @@
   color: #7f8c8d;
   font-size: 13px;
   font-family: 'Courier New', monospace;
+}
+
+/* 下载按钮 */
+.download-buttons {
+  margin-top: 30px;
+  padding: 20px;
+  background: linear-gradient(135deg, #e8f5e8 0%, #fff3e0 100%);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.download-buttons h4 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #2c3e50;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.buttons-container {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.btn-download {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-download:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-download:active {
+  transform: translateY(0);
 }
 
 /* 滚动条样式 */
