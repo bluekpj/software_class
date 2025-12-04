@@ -7,10 +7,44 @@ Node.js - JavaScript 运行时环境
 
 npm - Node.js 包管理器， nodejs安装后自带
 
+安装nvm,使用curl或是wget
+```
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+```
+
+```
+wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+```
+
+然后
+# 1. 安装最新的 LTS 版本
+```
+nvm install --lts
+```
+
+如果切换到刚安装的 LTS 版本
+```
+nvm use --lts
+```
+
+# 3. 验证当前使用的版本
+```
+node --version # 例如输出：v18.17.1
+npm --version  # 同时也会显示对应 npm 的版本
+```
+
 ## 后端开发环境
 uv - Python 虚拟环境管理和包安装工具
 
+安装uv,使用curl或是wget (https://docs.astral.sh/uv/getting-started/installation/)
 
+```
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+```
+wget -qO- https://astral.sh/uv/install.sh | sh
+```
 
 ## 运行方法
 
