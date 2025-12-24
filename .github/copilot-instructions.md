@@ -1,49 +1,55 @@
 # Copilot / AI 助手 指南（项目专用）
 
-下面是让 AI 编码助手快速在此仓库中高效工作的要点。只记录可被代码/文件验证的事实与可执行命令，避免泛泛而谈。
+只记录可从代码验证的事实与命令，确保 AI 代理能立刻高效协作。
 
-## 项目总体架构（大局）
-- **后端**: `fastapi-backend` — 使用 FastAPI 提供 REST 接口（入口：`fastapi-backend/main.py`）。用于接受图片、保存到 `uploads/`、触发 PointOBB 推理并把结果写到 `uploads/COCO/pseudo_obb_result.json`。
-- **前端**: `react-frontend` — 基于 Vite + React，前端通过 `react-frontend/src/utils/api.js` 将请求发到 `http://localhost:8000`（`baseURL`）。关键组件：`ImageAnnotation.jsx`（点标注交互）、`ImageDetection.jsx`（检测流程页面）。
-- **工具/转换**: 顶层 `dota_utils.py` 与 `fastapi-backend/dota_utils.py` 实现从点标注/文本到 COCO 格式的转换逻辑。
+## 架构总览
+- 后端：`fastapi-backend`（入口 `fastapi-backend/main.py`）。接收图片与点标注，写入 `uploads/`，集成 PointOBB 推理，结果保存到 `uploads/COCO/pseudo_obb_result.json`，可视化输出到 `uploads/visual/`。
+- 前端：`react-frontend`（Vite + React）。`src/utils/api.js` 的 `baseURL` 指向 `http://localhost:8000`。关键页面/组件：`components/ImageDetection.jsx`（流程页，包含上传/标注/结果查看）、`components/ImageAnnotation.jsx`（点标注画布）。
+- 转换脚本：`fastapi-backend/test_dota2coco_P2B_obb.py`、`fastapi-backend/dota_utils.py` 与顶层 `dota_utils.py` 用于将点标注/文本转 COCO。
 
-## 关键运行/开发命令
-- 启动后端（开发）:
-  - 在项目根或 `fastapi-backend` 虚拟环境中运行：
-    `uvicorn fastapi-backend.main:app --reload --host 0.0.0.0 --port 8000`
-- 启动前端（开发）:
-  - 进入 `react-frontend` 执行：
-    `npm install` 然后 `npm run dev`（使用 Vite）
-- 运行后端测试/脚本：`python fastapi-backend/test_dota2coco_P2B_obb.py`（查看该测试以理解数据转换使用方式）。
+## 目录与约定
+- 静态挂载：`UPLOAD_DIR = fastapi-backend/uploads` 挂载为 `/uploads`（见 `main.py`），前端直接以 `/uploads/...` 访问。
+- 子目录：`uploads/images`（原图）、`uploads/label`（点标注 txt）、`uploads/COCO`（JSON 结果）、`uploads/visual`（检测可视化）。请勿改动结构或路由。
+- 标注格式：每行 12 字段：`x1 y1 x2 y2 x3 y3 x4 y4 point_x point_y class difficulty`。后端写入时会固定前8点示例值，真实点位来自前端的 `{x,y,label}`（见 `main.py`/`ImageAnnotation.jsx`）。
+- 文件命名：批量上传保存为 `imageNNN.ext`；单次检测路径里常用 `image001.jpg` 作为固定可视化输出名。
 
-## 项目特有约定（重要）
-- 上传与静态目录：FastAPI 在 `main.py` 中将 `UPLOAD_DIR = Path(__file__).parent / 'uploads'` 挂载为静态目录（路由 `/uploads`）。前端可直接通过 `/uploads/...` 访问图片。
-- 标注文本格式（仓库中多处读取该格式）：每行至少包含 12 个字段：前 8 个为四点坐标（x1 y1 x2 y2 x3 y3 x4 y4），接着 `point_x point_y class_name difficulty`。示例见 `fastapi-backend/main.py` 与 `fastapi-backend/dota_utils.py`。
-- 固定文件名/流程：检测流程代码写死使用 `image001.txt`（标注）和 `image001.jpg`（可视化输出），并将模型输出复制为 `uploads/COCO/pseudo_obb_result.json`。任何自动化修改需注意这些硬编码的文件名。
-- 外部模型集成点：`fastapi-backend/main.py` 在 `run_detection` 中通过构造一个 shell 脚本串并用 `subprocess`/`bash` 执行 PointOBB 的数据转换、推理与可视化。关键常量（需按部署环境修改）：
-  - `WORK_PATH`, `WORK_DIR`, `MODEL_PATH`, `POINTOBB_PYTHON`（文件顶部声明）。
+## 后端接口与数据流（`main.py`）
+- 上传：`POST /upload/images` 批量保存图片并顺序命名；`GET /api/images/list` 列出已上传。
+- 标注：`GET /api/annotations/get?filename=imageNNN.jpg`；`POST /api/annotations/save { filename, annotations }` 写入 `uploads/label/imageNNN.txt`。
+- 检测：`POST /api/detect`（单图）与 `POST /api/detect/batch`（多图，基于已上传文件名）。结果 JSON 位于 `uploads/COCO/pseudo_obb_result.json`，可视化拷贝到 `uploads/visual/<imageNNN>.jpg`。
+- 结果查看：`GET /api/visual/list`、`GET /api/visual/zip`，以及 `GET /api/detection/results`（选取最新或指定文件）。
+- 前端当前默认流程：`ImageDetection.jsx` 先保存标注，然后直接打开“结果查看”模式，优先展示 `/uploads/visual` 下图片；若无则回退到 `/uploads/images`。未强制调用 `/api/detect`，便于联调与离线演示。
 
-## 调试与本地部署注意事项
-- 若要在本地跑完整推理流程，务必先修改 `fastapi-backend/main.py` 顶部的路径常量，或者将这些值设为环境变量并在 `main.py` 中读取。默认值为示例路径（不可直接使用）。
-- 因为命令通过 `bash -c` 运行，任何路径或权限错误会在日志 `execute_logs/` 下输出——查看该日志定位子进程错误。
-- 若不需要实际模型推理，可跳过调用外部脚本，直接用 `uploads/COCO/pseudo_obb_result.json` 放置一个伪造结果以进行前端联调。
+## PointOBB 集成要点
+- 关键常量（`main.py` 顶部）：`WORK_PATH`、`WORK_DIR`、`MODEL_PATH`、`POINTOBB_PYTHON`。命令通过 `bash -c` 执行；日志写入 `WORK_PATH/execute_logs/`。
+- 开发模式：`DEVEL_SKIP_MODEL` 环境变量已支持（默认 true）。开启时跳过外部推理，仅复制原图到 `uploads/visual/` 并仍尝试读取 `uploads/COCO/pseudo_obb_result.json`。
+- 完整推理前需正确设置上述路径常量；失败原因请查看 `execute_logs/*.log`。
 
-## 代码/样式约定（供自动化修改参考）
-- 前端：`api.js` 使用 `axios` 单例，`baseURL` 指向 `http://localhost:8000`，若修改后端端口需同步更新。
-- 后端：避免改变 `UPLOAD_DIR` 的相对布局（`uploads/images`, `uploads/label`, `uploads/COCO`, `uploads/visual`），许多脚本与前端路径依赖该结构。
+## 常用命令
+- 启动后端（开发）
+  ```bash
+  uvicorn fastapi-backend.main:app --reload --host 0.0.0.0 --port 8000
+  ```
+- 启动前端（开发）
+  ```bash
+  cd react-frontend
+  npm install
+  npm run dev
+  ```
+- 点标注转 COCO（示例脚本）
+  ```bash
+  python fastapi-backend/test_dota2coco_P2B_obb.py
+  # 输出：uploads/coco_format_point_labels.json（可自定义类别列表）
+  ```
 
-## 推荐的自动化修改示例（Agent 能直接做的事）
-- 当用户请求“使检测流程可配置化”时：
-  - 把 `WORK_PATH/WORK_DIR/MODEL_PATH/POINTOBB_PYTHON` 改为从环境变量读取（示范代码位置：`fastapi-backend/main.py` 顶部），并提供合理的默认值及错误提示。
-- 当用户请求“前端联调后端而不触发模型”时：
-  - 在 `fastapi-backend/main.py` 中添加一个 `DEVEL_SKIP_MODEL=True` 的条件分支，用于直接返回 `uploads/COCO/pseudo_obb_result.json` 的内容以便前端开发。
+## 代理协作提示（改动建议）
+- 配置化：如需跨环境运行，可把 `WORK_PATH/WORK_DIR/MODEL_PATH/POINTOBB_PYTHON` 改为从环境变量读取并提供报错提示（位置：`main.py` 顶部）。
+- 联调模式：已支持 `DEVEL_SKIP_MODEL`（默认启用）。前端可直接浏览 `uploads/visual`/`uploads/images`；亦可放置伪造 `uploads/COCO/pseudo_obb_result.json` 进行前端联调。
+- 保持不变：请勿更改 `/uploads` 静态路由与 `uploads/*` 目录结构，避免破坏前后端耦合路径。
 
-## 查阅位置（快速跳转）
-- 后端入口与核心流程：`fastapi-backend/main.py`
-- 数据转换与 COCO 格式：`fastapi-backend/dota_utils.py`、`dota_utils.py`
-- 前端 Axios/基地址：`react-frontend/src/utils/api.js`
-- 前端标注画布与点交互：`react-frontend/src/components/ImageAnnotation.jsx`
-- 说明文档/安装提示：`docs/guide.md`、`fastapi-backend/README.md`、`react-frontend/README.md`
+## 快速定位文件
+- 后端主流程与路由：`fastapi-backend/main.py`
+- COCO/标注转换：`fastapi-backend/dota_utils.py`、`fastapi-backend/test_dota2coco_P2B_obb.py`、顶层 `dota_utils.py`
+- 前端请求与交互：`react-frontend/src/utils/api.js`、`react-frontend/src/components/ImageDetection.jsx`、`react-frontend/src/components/ImageAnnotation.jsx`
 
----
-如果你希望我把常量提取为环境变量、或添加一个开发模式（跳过实际模型调用），我可以直接修改 `fastapi-backend/main.py` 并提交 PR。请告诉我优先要做的两件事。 
+—— 若你需要我将路径常量改为读取环境变量、或接入真正的推理流程，也可以直接告诉我优先顺序，我来改 `fastapi-backend/main.py` 并提交 PR。

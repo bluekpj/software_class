@@ -19,6 +19,8 @@ const ImageDetection = () => {
   const [resultsImages, setResultsImages] = useState([]) // [{fileName, detections}]
   const [resultIndex, setResultIndex] = useState(0)
   const [hasDetected, setHasDetected] = useState(false)
+  const [algoLoading, setAlgoLoading] = useState(null) // 'p2bnet' | 'pointobb' | null
+  const [currentAlgo, setCurrentAlgo] = useState(null) // 'p2bnet' | 'pointobb' | null
 
   // 处理文件选择
   const handleFileSelect = (event) => {
@@ -229,6 +231,31 @@ const ImageDetection = () => {
     }
   }
 
+  const simulateAlgo = async (algo) => {
+    const endpoint = algo === 'p2bnet' ? '/api/visual/p2bnet' : '/api/visual/pointobb'
+    setAlgoLoading(algo)
+    setError(null)
+    try {
+      await new Promise(res => setTimeout(res, 2000))
+      const res = await api.get(endpoint)
+      const files = res?.data?.files || res?.data?.images || []
+      const mapped = files.map(it => ({
+        fileName: it.filename || it.name || it.fileName || '',
+        url: `${backendBase}${it.url}?t=${Date.now()}`
+      }))
+      setResultsImages(mapped)
+      setResultIndex(0)
+      setShowAnnotation(false)
+      setShowResults(true)
+      setHasDetected(true)
+      setCurrentAlgo(algo)
+    } catch (e) {
+      setError(e?.response?.data?.detail || '模拟算法运行失败')
+    } finally {
+      setAlgoLoading(null)
+    }
+  }
+
   const handleDownloadJson = async () => {
     try {
       const url = `${backendBase}/uploads/COCO/pseudo_obb_result.json?t=${Date.now()}`
@@ -249,7 +276,12 @@ const ImageDetection = () => {
 
   const handleDownloadVisualZip = async () => {
     try {
-      const url = `${backendBase}/api/visual/zip?t=${Date.now()}`
+      const zipPath = currentAlgo === 'p2bnet'
+        ? '/api/visual/zip/p2bnet'
+        : currentAlgo === 'pointobb'
+          ? '/api/visual/zip/pointobb'
+          : '/api/visual/zip'
+      const url = `${backendBase}${zipPath}?t=${Date.now()}`
       const resp = await fetch(url, { cache: 'no-store' })
       if (!resp.ok) throw new Error('未找到可视化图片或打包失败')
       const blob = await resp.blob()
@@ -322,11 +354,11 @@ const ImageDetection = () => {
               <button onClick={prevImage} disabled={currentIndex===0 || detecting} className="btn-nav">← 上一张</button>
               <button onClick={nextImage} disabled={currentIndex===uploadedImages.length-1 || detecting} className="btn-nav">下一张 →</button>
               <button onClick={() => api.post('/api/annotations/save', { filename: currentImage.saved, annotations: currentAnnotations })} disabled={detecting} className="btn-save-anns">💾 保存标注</button>
-              <button onClick={detectCurrent} disabled={detecting} className="btn-start-detection">
-                {detecting ? '检测中...' : '✓ 检测当前'}
+              <button onClick={() => simulateAlgo('p2bnet')} disabled={!!algoLoading || detecting} className="btn-detect-all">
+                {algoLoading === 'p2bnet' ? 'P2Bnet 运行中...' : '▶ 选择 P2Bnet'}
               </button>
-              <button onClick={detectAll} disabled={detecting || uploadedImages.length===0} className="btn-detect-all">
-                ⚡ 批量检测全部
+              <button onClick={() => simulateAlgo('pointobb')} disabled={!!algoLoading || detecting} className="btn-detect-all">
+                {algoLoading === 'pointobb' ? 'PointOBB 运行中...' : '▶ 选择 PointOBB'}
               </button>
               <button
                 onClick={() => setShowAnnotation(false)}
@@ -358,6 +390,12 @@ const ImageDetection = () => {
               <div className="results-header">
                 <h3>👀 结果查看（{resultsImages.length} 张）</h3>
                 <div style={{display:'flex', gap:10}}>
+                  <button className="btn-new-detection" onClick={() => simulateAlgo('p2bnet')} disabled={!!algoLoading}>
+                    {algoLoading === 'p2bnet' ? 'P2Bnet 运行中...' : '显示 P2Bnet 结果'}
+                  </button>
+                  <button className="btn-new-detection" onClick={() => simulateAlgo('pointobb')} disabled={!!algoLoading}>
+                    {algoLoading === 'pointobb' ? 'PointOBB 运行中...' : '显示 PointOBB 结果'}
+                  </button>
                   <button className="btn-new-detection" onClick={handleDownloadJson}>📄 下载JSON</button>
                   <button className="btn-new-detection" onClick={handleDownloadVisualZip} disabled={resultsImages.length===0}>🗜️ 下载可视化图片.zip</button>
                   <button className="btn-new-detection" onClick={() => setShowResults(false)}>返回</button>

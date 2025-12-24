@@ -26,6 +26,8 @@ UPLOAD_DIR = BASE_DIR / "uploads"
 IMAGE_DIR = UPLOAD_DIR / "images"
 LABEL_DIR = UPLOAD_DIR / "label"
 COCO_DIR = UPLOAD_DIR / "COCO"
+P2BNET_DIR = UPLOAD_DIR / "DIOR-R_scene_pretrain"  # 示例目录：P2Bnet 可视化输出
+POINT_OBB_DIR = UPLOAD_DIR / "DIOR-R_scene_pretrain_obb"  # 示例目录：PointOBB 可视化输出
 
 # PointOBB相关配置（请根据实际环境修改）
 WORK_PATH = "/mnt/c/mengchao/shared/wsl/PointOBB-main/PointOBB"
@@ -37,7 +39,7 @@ POINTOBB_PYTHON = "/home/userwsl/miniconda3/envs/pointobb/bin/python"
 DEVEL_SKIP_MODEL = os.getenv("DEVEL_SKIP_MODEL", "true").lower() in ["1", "true", "yes", "y"]
 
 # 创建必要目录（确保启动时目录存在）
-for dir_path in [IMAGE_DIR, LABEL_DIR, COCO_DIR]:
+for dir_path in [IMAGE_DIR, LABEL_DIR, COCO_DIR, P2BNET_DIR, POINT_OBB_DIR]:
     dir_path.mkdir(parents=True, exist_ok=True)
 
 # ======================== 工具函数 ========================
@@ -68,6 +70,43 @@ def generate_safe_filename(original_filename: str, prefix: str = "detect") -> st
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]  # 毫秒级时间戳
     file_hash = hash(original_filename + timestamp) % 10000  # 简单哈希避免冲突
     return f"{prefix}_{timestamp}_{file_hash}.{ext}"
+
+
+def list_images_from_dir(dir_path: Path) -> List[Dict]:
+    """列出指定目录下的图片文件，按修改时间倒序"""
+    dir_path.mkdir(parents=True, exist_ok=True)
+    paths = list(dir_path.glob("*.jpg")) + list(dir_path.glob("*.png")) + list(dir_path.glob("*.bmp"))
+    paths.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    rel = dir_path.relative_to(UPLOAD_DIR)
+    images = [{
+        "filename": p.name,
+        "url": f"/uploads/{rel}/{p.name}",
+        "mtime": datetime.fromtimestamp(p.stat().st_mtime).isoformat()
+    } for p in paths]
+    return images
+
+
+def zip_images_from_dir(dir_path: Path, prefix: str) -> StreamingResponse:
+    """打包指定目录下的图片为 zip 返回"""
+    dir_path.mkdir(parents=True, exist_ok=True)
+    paths = list(dir_path.glob("*.jpg")) + list(dir_path.glob("*.png")) + list(dir_path.glob("*.bmp"))
+    if not paths:
+        raise HTTPException(status_code=404, detail=f"{dir_path.name} 目录下无可下载的图片")
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for p in paths:
+            try:
+                zf.write(p, arcname=p.name)
+            except Exception:
+                continue
+    buf.seek(0)
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{prefix}_{ts}.zip"
+    headers = {
+        "Content-Disposition": f"attachment; filename={filename}"
+    }
+    return StreamingResponse(buf, media_type="application/zip", headers=headers)
 
 # ======================== 检测核心函数 ========================
 async def run_detection(image_path: str, annotations: List[Dict] = None, base_name: str = "image001") -> Dict:
@@ -515,29 +554,37 @@ async def list_visual_images():
     # 统一返回 files 字段，前端已兼容 images 字段也不受影响
     return {"success": True, "count": len(images), "files": images}
 
+
+@app.get("/api/visual/p2bnet", tags=["结果查询"])
+async def list_visual_p2bnet():
+    """模拟 P2Bnet：列出 uploads/pretarain 下的图片"""
+    images = list_images_from_dir(P2BNET_DIR)
+    return {"success": True, "count": len(images), "files": images}
+
+
+@app.get("/api/visual/pointobb", tags=["结果查询"])
+async def list_visual_pointobb():
+    """模拟 PointOBB：列出 uploads/pretrain_obb 下的图片"""
+    images = list_images_from_dir(POINT_OBB_DIR)
+    return {"success": True, "count": len(images), "files": images}
+
 @app.get("/api/visual/zip", tags=["结果查询"])
 async def download_visual_zip():
     """将 uploads/visual 下的图片打包为 zip 返回下载"""
     visual_dir = UPLOAD_DIR / "visual"
-    visual_dir.mkdir(parents=True, exist_ok=True)
-    paths = list(visual_dir.glob("*.jpg")) + list(visual_dir.glob("*.png")) + list(visual_dir.glob("*.bmp"))
-    if not paths:
-        raise HTTPException(status_code=404, detail="visual 目录下无可下载的图片")
+    return zip_images_from_dir(visual_dir, "visual_images")
 
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
-        for p in paths:
-            try:
-                zf.write(p, arcname=p.name)
-            except Exception:
-                continue
-    buf.seek(0)
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"visual_images_{ts}.zip"
-    headers = {
-        "Content-Disposition": f"attachment; filename={filename}"
-    }
-    return StreamingResponse(buf, media_type="application/zip", headers=headers)
+
+@app.get("/api/visual/zip/p2bnet", tags=["结果查询"])
+async def download_visual_zip_p2bnet():
+    """将 uploads/DIOR-R_scene_pretrain 下的图片打包为 zip 返回下载"""
+    return zip_images_from_dir(P2BNET_DIR, "p2bnet_images")
+
+
+@app.get("/api/visual/zip/pointobb", tags=["结果查询"])
+async def download_visual_zip_pointobb():
+    """将 uploads/DIOR-R_scene_pretrain_obb 下的图片打包为 zip 返回下载"""
+    return zip_images_from_dir(POINT_OBB_DIR, "pointobb_images")
 
 @app.get("/api/annotations/get", tags=["标注"])
 async def get_annotations(filename: str):

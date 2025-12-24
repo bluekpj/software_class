@@ -67,6 +67,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "opencv-python-headless" },
     { name = "pillow" },
+    { name = "pydantic" },
     { name = "python-multipart" },
     { name = "uvicorn" },
 ]
@@ -76,6 +77,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.118.0" },
     { name = "opencv-python-headless", specifier = ">=4.12.0.88" },
     { name = "pillow", specifier = ">=12.0.0" },
+    { name = "pydantic", specifier = ">=2.7.0" },
     { name = "python-multipart", specifier = ">=0.0.20" },
     { name = "uvicorn", specifier = ">=0.37.0" },
 ]

@@ -330,7 +330,7 @@ const ImageAnnotation = ({ imageUrl, onAnnotationsChange, initialAnnotations = [
           </div>
           {showCategoryPopup && (
             <div className="category-body">
-              {['ship','door','chair'].map(cat => (
+              {['ship','door','chair','watertower','chimney'].map(cat => (
                 <button
                   key={cat}
                   className={`category-btn ${currentCategory===cat ? 'active' : ''}`}
