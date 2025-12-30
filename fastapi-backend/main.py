@@ -394,13 +394,8 @@ app = FastAPI(title=APP_TITLE, description=APP_DESCRIPTION, version="1.0.0")
 # 配置CORS（支持更多前端地址，生产环境建议限制具体域名）
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173",
-        # 如需支持其他前端地址，在此添加
-    ],
+    # 放宽 CORS 方便公网访问；如需收紧可改为具体域名列表
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

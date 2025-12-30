@@ -13,6 +13,10 @@ const ImageDetection = () => {
   const [annotationsMap, setAnnotationsMap] = useState({}) // filename -> annotations array
   const [showAnnotation, setShowAnnotation] = useState(false)
   const [showVisual, setShowVisual] = useState(true)
+  const [serverImages, setServerImages] = useState([]) // images already on the server
+  const [showServerPicker, setShowServerPicker] = useState(false)
+  const [selectedServerImages, setSelectedServerImages] = useState({}) // filename -> item
+  const [autoLoadAnnotations, setAutoLoadAnnotations] = useState(true) // 是否自动加载服务器已有标注
   // 结果查看相关
   const [showResults, setShowResults] = useState(false)
   const [resultsData, setResultsData] = useState(null)
@@ -31,6 +35,8 @@ const ImageDetection = () => {
       setBatchResults({})
       setAnnotationsMap({})
       setCurrentIndex(0)
+      setAutoLoadAnnotations(true)
+      setShowVisual(true)
     }
   }
 
@@ -44,6 +50,8 @@ const ImageDetection = () => {
       setBatchResults({})
       setAnnotationsMap({})
       setCurrentIndex(0)
+      setAutoLoadAnnotations(true)
+      setShowVisual(true)
     }
   }
 
@@ -118,6 +126,8 @@ const ImageDetection = () => {
     setError(null)
     setShowAnnotation(false)
     setCurrentIndex(0)
+    setAutoLoadAnnotations(true)
+    setShowVisual(true)
   }
 
   const uploadSelected = async () => {
@@ -128,9 +138,60 @@ const ImageDetection = () => {
       const res = await api.post('/upload/images', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
       setUploadedImages(res.data.files || [])
       setShowAnnotation(true)
+      setAutoLoadAnnotations(true)
+      setShowVisual(true)
     } catch (err) {
       setError(err.response?.data?.detail || '上传失败')
     }
+  }
+
+  // 拉取服务器现有图片供选择
+  const fetchServerImages = async () => {
+    setError(null)
+    setShowServerPicker(true)
+    try {
+      const res = await api.get('/api/images/list')
+      const listRaw = res?.data?.images || []
+      setServerImages(listRaw)
+      setSelectedServerImages({})
+    } catch (e) {
+      setError(e?.response?.data?.detail || '获取服务器图片失败')
+    }
+  }
+
+  const toggleServerImage = (item) => {
+    setSelectedServerImages(prev => {
+      const next = { ...prev }
+      if (next[item.filename]) {
+        delete next[item.filename]
+      } else {
+        next[item.filename] = item
+      }
+      return next
+    })
+  }
+
+  const useSelectedServerImages = () => {
+    const chosen = Object.values(selectedServerImages)
+    if (!chosen.length) {
+      setError('请选择至少一张服务器图片')
+      return
+    }
+    const mapped = chosen.map(it => ({
+      saved: it.filename,
+      original: it.filename,
+      url: `${backendBase}${it.url}`
+    }))
+    setUploadedImages(mapped)
+    setSelectedFiles([])
+    setBatchResults({})
+    setAnnotationsMap({})
+    setShowAnnotation(true)
+    setShowVisual(false) // 默认直接显示原图
+    setCurrentIndex(0)
+    setHasDetected(false)
+    setShowServerPicker(false)
+    setAutoLoadAnnotations(false) // 不加载服务器已有标注，留给用户自行标注
   }
 
   const currentImage = uploadedImages[currentIndex]
@@ -164,6 +225,7 @@ const ImageDetection = () => {
 
   // 切换图片时自动从后端加载已保存的标注
   useEffect(() => {
+    if (!autoLoadAnnotations) return
     const current = uploadedImages[currentIndex]
     if (!current) return
     api.get('/api/annotations/get', { params: { filename: current.saved } })
@@ -172,7 +234,7 @@ const ImageDetection = () => {
         setAnnotationsMap(prev => ({ ...prev, [current.saved]: anns }))
       })
       .catch(() => {})
-  }, [currentIndex, uploadedImages])
+  }, [currentIndex, uploadedImages, autoLoadAnnotations])
 
   const toggleVisual = () => setShowVisual(v => !v)
 
@@ -454,6 +516,54 @@ const ImageDetection = () => {
                   </div>
                 )}
               </div>
+
+              {/* 使用服务器已有图片（弹窗选择） */}
+              <div className="server-picker">
+                <button className="btn-upload-batch" onClick={fetchServerImages}>📂 使用服务器图片</button>
+              </div>
+
+              {showServerPicker && (
+                <div className="server-modal">
+                  <div className="server-modal-backdrop" onClick={() => setShowServerPicker(false)}></div>
+                  <div className="server-modal-content">
+                    <div className="server-modal-header">
+                      <div>
+                        <h4>服务器图片（uploads/images）</h4>
+                        <p className="server-meta-text">共 {serverImages.length} 张，勾选后与上传图片等价使用</p>
+                      </div>
+                      <div className="server-modal-actions">
+                        <button className="btn-detect-all" onClick={useSelectedServerImages}>✅ 使用所选</button>
+                        <button className="btn-clear" onClick={() => setShowServerPicker(false)}>关闭</button>
+                      </div>
+                    </div>
+                    <div className="server-modal-body">
+                      {serverImages.length === 0 ? (
+                        <p className="server-empty">未找到服务器图片，可先上传。</p>
+                      ) : (
+                        <div className="server-grid">
+                          {serverImages.map(item => {
+                            const checked = !!selectedServerImages[item.filename]
+                            return (
+                              <label key={item.filename} className={`server-item ${checked ? 'selected' : ''}`}>
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => toggleServerImage(item)}
+                                />
+                                <img src={`${backendBase}${item.url}`} alt={item.filename} />
+                                <div className="server-meta">
+                                  <span>{item.filename}</span>
+                                  {item.visual_exists && <span className="tag">有可视化</span>}
+                                </div>
+                              </label>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* 操作按钮 */}
               {selectedFiles.length > 0 && (

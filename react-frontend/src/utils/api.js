@@ -1,10 +1,21 @@
 import axios from "axios";
 
-// 创建 axios 实例
+// 动态拼接后端地址：将当前 origin 的端口替换为 8000，便于公网/本地一致使用
+const resolveBaseURL = () => {
+  if (typeof window === "undefined") return "http://124.70.209.154:8000"; // Updated for public access
+  try {
+    const url = new URL(window.location.origin);
+    url.port = "8000";
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return "http://124.70.209.154:8000"; // Updated for public access
+  }
+};
+
 const api = axios.create({
-    baseURL: "http://localhost:8000", // FastAPI 后端地址
-    timeout: 30000, //30秒超时
-})
+  baseURL: resolveBaseURL(),
+  timeout: 30000, // 30秒超时
+});
 
 // 请求拦截器
 api.interceptors.request.use(
